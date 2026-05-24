@@ -4,8 +4,8 @@ const API_URL = "http://localhost:3000/api/reservations";
 
 // We will test by attempting to reserve 10 items concurrently 
 // when the inventory only has 3 available.
-const PRODUCT_ID = "de01dd4d-ac26-40da-af1d-1a57dc582bf7"; // Replace with actual ID
-const WAREHOUSE_ID = "6cfd78fc-94f8-413b-93c2-836ec6d74d3c"; // Replace with actual ID
+const PRODUCT_ID = "99d0474d-2cff-4905-aa20-dfb020c49c95"; // MacBook Air M4
+const WAREHOUSE_ID = "d09e7e10-e7e3-436f-8a00-bcdbd835d1cd"; // Bangalore Central Warehouse
 const CONCURRENT_REQUESTS = 10;
 
 async function runStressTest() {
