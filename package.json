@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "stress-test": "tsx scripts/stress-test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
