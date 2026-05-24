@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ export default function ReservationPage() {
 
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [remainingTime, setRemainingTime] = useState("");
 
   async function fetchReservation() {
     try {
@@ -87,21 +88,29 @@ export default function ReservationPage() {
     fetchReservation();
   }, []);
 
-  const remainingTime = useMemo(() => {
-    if (!reservation) return "";
+  useEffect(() => {
+    if (!reservation) return;
 
-    const now = new Date().getTime();
-    const expiry = new Date(reservation.expiresAt).getTime();
-    const diff = expiry - now;
+    function updateCountdown() {
+      const now = new Date().getTime();
+      const expiry = new Date(reservation!.expiresAt).getTime();
+      const diff = expiry - now;
 
-    if (diff <= 0) {
-      return "Expired";
+      if (diff <= 0) {
+        setRemainingTime("Expired");
+        fetchReservation();
+        return;
+      }
+
+      const minutes = Math.floor(diff / 1000 / 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setRemainingTime(`${minutes}m ${seconds}s`);
     }
 
-    const minutes = Math.floor(diff / 1000 / 60);
-    const seconds = Math.floor((diff / 1000) % 60);
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
 
-    return `${minutes}m ${seconds}s`;
+    return () => clearInterval(interval);
   }, [reservation]);
 
   if (loading) {
