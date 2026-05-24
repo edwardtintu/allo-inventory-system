@@ -1,65 +1,177 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+type Inventory = {
+  inventoryId: string;
+
+  warehouse: {
+    id: string;
+    name: string;
+    location: string;
+  };
+
+  totalStock: number;
+  reservedStock: number;
+  availableStock: number;
+};
+
+type Product = {
+  id: string;
+  name: string;
+  sku: string;
+  description: string;
+  inventories: Inventory[];
+};
+
+export default function HomePage() {
+  const router = useRouter();
+
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function fetchProducts() {
+    try {
+      const response = await axios.get("/api/products");
+
+      setProducts(response.data);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Failed to load products");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function reserveProduct(
+    productId: string,
+    warehouseId: string
+  ) {
+    try {
+      const response = await axios.post("/api/reservations", {
+        productId,
+        warehouseId,
+        quantity: 1,
+      });
+
+      toast.success("Reservation created");
+
+      router.push(`/reservation/${response.data.id}`);
+    } catch (error: any) {
+      console.error(error);
+
+      if (error?.response?.status === 409) {
+        toast.error("Not enough stock available");
+        return;
+      }
+
+      toast.error("Reservation failed");
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="p-10 text-lg">
+        Loading products...
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-gray-50 p-10">
+      <div className="mx-auto max-w-6xl">
+        <h1 className="mb-8 text-4xl font-bold">
+          Inventory Reservation System
+        </h1>
+
+        <div className="space-y-6">
+          {products.map((product) => (
+            <div
+              key={product.id}
+              className="rounded-2xl border bg-white p-6 shadow-sm"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <div className="mb-4">
+                <h2 className="text-2xl font-semibold">
+                  {product.name}
+                </h2>
+
+                <p className="text-sm text-gray-500">
+                  SKU: {product.sku}
+                </p>
+
+                <p className="mt-2 text-gray-700">
+                  {product.description}
+                </p>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {product.inventories.map((inventory) => (
+                  <div
+                    key={inventory.inventoryId}
+                    className="rounded-xl border p-4"
+                  >
+                    <div className="mb-3">
+                      <h3 className="font-semibold">
+                        {inventory.warehouse.name}
+                      </h3>
+
+                      <p className="text-sm text-gray-500">
+                        {inventory.warehouse.location}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1 text-sm">
+                      <p>
+                        Total Stock:{" "}
+                        <span className="font-medium">
+                          {inventory.totalStock}
+                        </span>
+                      </p>
+
+                      <p>
+                        Reserved Stock:{" "}
+                        <span className="font-medium">
+                          {inventory.reservedStock}
+                        </span>
+                      </p>
+
+                      <p>
+                        Available Stock:{" "}
+                        <span className="font-medium">
+                          {inventory.availableStock}
+                        </span>
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        reserveProduct(
+                          product.id,
+                          inventory.warehouse.id
+                        )
+                      }
+                      disabled={
+                        inventory.availableStock <= 0
+                      }
+                      className="mt-4 w-full rounded-lg bg-black px-4 py-2 text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    >
+                      Reserve 1 Unit
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
